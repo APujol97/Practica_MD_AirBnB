@@ -1,0 +1,140 @@
+---
+title: "Minería de Datos, Práctica AirBNB, Cuestión 2"
+author:
+  - Alcázar Gajo, Crist 
+  - Pujol Villegas, Antonio 
+  - Mas Pons, Albert 
+  - Muñoz Navarro, Francisco José 
+  - Campaner Gutiérrez, Joan
+date: "7 de enero, 2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Apartado 1 ##
+
+```{r}
+library(readr)
+listing <- read_csv("data/listingsCiudadesLimpio.csv")
+
+
+aux<-c()
+
+for(i in 1:length(listing$number_of_reviews)){
+
+   if(!is.na(listing$number_of_reviews[i])){
+     aux<-c(aux,listing$number_of_reviews[i])
+  }
+ 
+}
+tabla_frecuencias<- table(aux)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+library(ggplot2)
+plot(tabla_frecuencias, main = "relación recuencias con rango frecuencias", xlab ="rango recuencias", ylab = "frecuencias")
+```
+
+## Apartado 3 ##
+
+```{r}
+
+barriosMallorca<-c()
+barriosValencia<-c()
+barriosMexico<-c()
+barriosBuenos<-c()
+barriosBarcelona<-c()
+
+for(i in 1:length(listing$Ciudad)){
+  
+   if(listing$Ciudad[i] == "Mallorca"){
+     barriosMallorca<-c(barriosMallorca,listing$neighbourhood_cleansed[i])
+   }
+  if(listing$Ciudad[i] == "Barcelona"){
+     barriosBarcelona<-c(barriosBarcelona,listing$neighbourhood_cleansed[i])
+  }
+  if(listing$Ciudad[i] == "Valencia"){
+     barriosValencia<-c(barriosValencia,listing$neighbourhood_cleansed[i])
+  }
+  if(listing$Ciudad[i] == "Mexico"){
+     barriosMexico<-c(barriosMexico,listing$neighbourhood_cleansed[i])
+  }
+  if(listing$Ciudad[i] == "Buenos Aires"){
+     barriosBuenos<-c(barriosBuenos,listing$neighbourhood_cleansed[i])
+  }
+ 
+}
+
+barriosMallorca<-table(barriosMallorca)
+barriosValencia<-table(barriosValencia)
+barriosMexico<-table(barriosMexico)
+barriosBuenos<-table(barriosBuenos)
+barriosBarcelona<-table(barriosBarcelona)
+
+barriosMallorca<-barriosMallorca[order(unlist(barriosMallorca))]
+barriosMallorcaFiltrados<-data.frame(tail(barriosMallorca, 5))
+
+barriosValencia<-barriosValencia[order(unlist(barriosValencia))]
+barriosValenciaFiltrados<-data.frame(tail(barriosValencia, 5))
+
+barriosMexico<-barriosMexico[order(unlist(barriosMexico))]
+barriosMexicoFiltrados<-data.frame(tail(barriosMexico, 5))
+
+barriosBuenos<-barriosBuenos[order(unlist(barriosBuenos))]
+barriosBuenosFiltrados<-data.frame(tail(barriosBuenos, 5))
+
+barriosBarcelona<-barriosBarcelona[order(unlist(barriosBarcelona))]
+barriosBarcelonaFiltrados<-data.frame(tail(barriosBarcelona, 5))
+
+barriosTotales=data.frame("Mallorca"=barriosMallorcaFiltrados$barriosMallorca)
+
+barriosTotales=cbind(barriosTotales,"Valencia"=barriosValenciaFiltrados$barriosValencia)
+barriosTotales=cbind(barriosTotales,"Mexico"=barriosMexicoFiltrados$barriosMexico)
+barriosTotales=cbind(barriosTotales,"Buenos Aires"=barriosBuenosFiltrados$barriosBuenos)
+
+barriosTotales=cbind(barriosTotales,"Barcelona"=barriosBarcelonaFiltrados$barriosBarcelona)
+
+datos <- data.frame(precioMedio=integer(),
+                 habMedia=integer(), 
+                 camasMedia=integer(), 
+                 barrio=character(),
+                 ciudad=character()) 
+
+
+aux2<-select(listing[listing$neighbourhood_cleansed == "Manacor",],price,bedrooms,beds)
+
+
+for(j in 1:length(barriosTotales)){
+  
+  for(i in 1:length(barriosTotales[,j])){
+    
+    aux2<-select( listing[listing$neighbourhood_cleansed == barriosTotales[i,j],], price , bedrooms , beds )
+    
+  aux2$price[is.na(aux2$price)]<-0
+  aux2$bedrooms[is.na(aux2$bedrooms)]<-0
+  aux2$beds[is.na(aux2$beds)]<-0
+    
+  precioMedio<-sum(aux2$price)/length(aux2$price)
+  habMedio<-sum(aux2$bedrooms)/length(aux2$bedrooms)
+  camasMedio<-sum(aux2$beds)/length(aux2$beds)
+     
+  nuevosDatos=data.frame( precioMedio=precioMedio, habMedia=habMedio, camasMedia=camasMedio, barrio=barriosTotales[i,j] , ciudad=colnames(barriosTotales[j]))
+  datos=rbind(datos,nuevosDatos)
+    
+  }
+ 
+}
+
+str(datos)
+
+```
+
