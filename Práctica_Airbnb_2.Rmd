@@ -138,3 +138,111 @@ str(datos)
 
 ```
 
+
+## 2 Reviews por zona, barrio, dias de la semana y meses.
+
+
+Limpiar nombres y características que no se usan.
+
+```{r}
+
+#install.packages("data.table")   
+library("data.table") 
+
+listings <- read_csv("data/listingsCiudadesLimpio.csv")
+setnames(listings, "X..email", "email")
+setnames(listings, "government_id..", "government_id")
+setnames(listings, "identity_manual..", "identity_manual")
+setnames(listings, "reviews..", "reviews")
+setnames(listings, "work_email..", "work_email")
+setnames(listings, "email", "X..email..")
+listings$X..phone <- NULL
+listings$X..phone.. <- NULL
+listings$phone.. <- NULL
+listings$manual_offline.. <- NULL
+listings$X..reviews.. <- NULL
+listings$X..identity_manual.. <- NULL
+listings$X..jumio <- NULL
+listings$photographer.. <- NULL
+listings$X..offline_government_id <- NULL
+
+summary(listings)
+
+```
+
+
+```{r}
+library("data.table") 
+#para que salga en inglés
+Sys.setlocale("LC_TIME","C")
+
+#para ordenar los plots a la hora de mostrarlo
+month_names <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+day_names <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
+
+#creamos el dataset reviews a partir de las tablas de reviews de las ciudades
+reviews <- read_csv("data/reviewsCiudades.csv")
+
+#añadimos las características necesarias
+reviews$day <- weekdays(as.Date(reviews$date))
+reviews$month <- month.name[month(as.Date(reviews$date))]
+setnames(listings, "id", "listing_id")
+reviews <- merge(reviews, listings[, c("listing_id", "neighbourhood_cleansed")], by="listing_id")
+setnames(listings, "listing_id", "id")
+setnames(reviews, "neighbourhood_cleansed", "zone")
+
+#el dataset con todas las características necesarias
+reviews
+
+#ahora montamos las tablas con la información que se pide
+#count para zones y ciudades
+reviews_zone <- aggregate(list(reviews=listings$number_of_reviews), by=list(zona=listings$neighbourhood_cleansed, ciudad=listings$Ciudad), FUN=sum) 
+reviews_city <- aggregate(list(reviews=listings$number_of_reviews), by=list(ciudad=listings$Ciudad), FUN=sum) 
+
+#order descent
+reviews_zone <- reviews_zone[order(-reviews_zone$reviews),] 
+reviews_city <- reviews_city[order(-reviews_city$reviews),] 
+
+#count para dias y meses
+reviews_day <- data.frame(table(reviews$day))
+setnames(reviews_day, "Freq", "reviews")
+setnames(reviews_day, "Var1", "day")
+reviews_month <- data.frame(table(reviews$month))
+setnames(reviews_month, "Freq", "reviews")
+setnames(reviews_month, "Var1", "month")
+
+#order descent
+reviews_day <- reviews_day[order(-reviews_day$reviews),] 
+reviews_month <- reviews_month[order(-reviews_month$reviews),] 
+
+
+
+#algunos plots de muestra que podrían ser útiles
+
+#plot ordenado
+p <- reviews %>%
+  mutate(day = fct_relevel(day,day_names)) %>%
+  ggplot( aes(x=day, fill=Ciudad)) +
+    geom_bar(position = "dodge")
+p
+
+#plot ordenado
+p <- reviews %>%
+  mutate(month = fct_relevel(month,month_names)) %>%
+  ggplot( aes(x=month, fill=Ciudad)) +
+    geom_bar(position = "dodge")
+p
+
+
+#se observan las ciudades con temporalidad/estacionalidad
+ggplot(data = reviews, aes(x = date, y = Ciudad, group = 1)) +
+    geom_count(alpha=0.01)+
+    scale_size_area(max_size = 10)
+
+
+#Las tablas de lo que se pide
+reviews_day
+reviews_month
+reviews_zone
+reviews_city
+```
