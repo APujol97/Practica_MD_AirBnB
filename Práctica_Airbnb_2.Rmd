@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Apartado 1 ##
 
+En este apartado anotaremos la frecuencia del número de reseñas por apartamento, reflejando cuántos apartamentos han tenido un número determinado de reviews. Tras ello veremos si esta frecuencia tiene junto el rango de distintas frecuencas dadas, una relación potencial o "power law".
+
 ```{r}
 library(readr)
 listing <- read_csv("data/listingsCiudadesLimpio.csv")
@@ -35,16 +37,18 @@ for(i in 1:length(listing$number_of_reviews)){
 tabla_frecuencias<- table(aux)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
+Tras recopilar las frecuencias, presentamos la gráfica.
 
 ```{r}
 library(ggplot2)
-plot(tabla_frecuencias, main = "relación recuencias con rango frecuencias", xlab ="rango recuencias", ylab = "frecuencias")
+plot(tabla_frecuencias, main = "frecuencias vs rango frecuencias", xlab ="rango recuencias", ylab = "frecuencias")
 ```
 
+De la gráfica podemos observar y ,por tanto, confirmar que sí se sigue una relación potencial.
+
 ## Apartado 3 ##
+
+En este apartado recopilaremos el precio medio de todo el periodo, el número medio de camas, y el número medio de habitaciones de todos los apartamentos pertenecientes a los 5 barrios, con más apartamentos, de las 5 ciudades propuestas.
 
 ```{r}
 
@@ -133,11 +137,22 @@ for(j in 1:length(barriosTotales)){
   }
  
 }
-
-str(datos)
-
 ```
 
+```{r}
+
+print.data.frame(datos)
+
+```
+A partir de los datos recopilados en el DataFrame, podemos observar que:
+
+1- Los precios más caros, para este caso, son para los apartamentos de Buenos Aires, mientras que los más baratos serían los de Valencia. 
+
+2- Los precios en cada ciudad, para cada barrio, varía más en Buenos Aires y Mexico, y menos en el resto.
+
+3- Suele haber más habitaciones de media en los apartamentos de Mallorca que en los ofertados en las otras ciudades con considerable diferencia.
+
+4- De nuevo, y posiblemente en relación con el punto anterior, los apaertamentos de Mallorca ofrecen más camas que los ofertados por otras ciudades con destacable diferencia, siendo el caso de Mexico donde menos camas, de media, se ofertan.
 
 ## 2 Reviews por zona, barrio, dias de la semana y meses.
 
