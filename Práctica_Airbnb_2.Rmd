@@ -53,7 +53,6 @@ Limpiar nombres y características que no se usan.
 
 ```{r}
 
-#install.packages("data.table")   
 library("data.table") 
 
 listings <- read_csv("data/listingsCiudadesLimpio.csv")
@@ -78,6 +77,10 @@ listings$X..offline_government_id <- NULL
 
 ```{r}
 library("data.table") 
+library(magrittr)
+library(dplyr)
+library(forcats)
+
 #para que salga en inglés
 Sys.setlocale("LC_TIME","C")
 
@@ -88,6 +91,7 @@ day_names <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Su
 #creamos el dataset reviews a partir de las tablas de reviews de las ciudades
 reviews <- read_csv("data/reviewsCiudades.csv")
 
+
 #añadimos las características necesarias
 reviews$day <- weekdays(as.Date(reviews$date))
 reviews$month <- month.name[month(as.Date(reviews$date))]
@@ -97,7 +101,7 @@ setnames(listings, "listing_id", "id")
 setnames(reviews, "neighbourhood_cleansed", "zone")
 
 #el dataset con todas las características necesarias
-reviews
+str(reviews)
 
 #ahora montamos las tablas con la información que se pide
 #count para zones y ciudades
@@ -121,12 +125,8 @@ reviews_day <- reviews_day[order(-reviews_day$reviews),]
 reviews_month <- reviews_month[order(-reviews_month$reviews),] 
 
 
-```
-
-Esto no me funciona
-
-```{r}
 #algunos plots de muestra que podrían ser útiles
+
 
 #plot ordenado
 p <- reviews %>%
