@@ -8,12 +8,27 @@ author:
   - Campaner Gutiérrez, Joan
 date: "7 de enero, 2022"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# librarías empleadas para el proyecto
+library(tidyverse)
+library(stringr)
+library(rgdal)
+library(rgeos)
+library(plotly)
+library(ggplot2)
+library(readr)
+library(data.table)
+library(magrittr)
+library(dplyr)
+library(forcats)
 ```
 
 ## Apartado 1 ##
@@ -21,7 +36,6 @@ knitr::opts_chunk$set(echo = TRUE)
 En este apartado anotaremos la frecuencia del número de reseñas por apartamento, reflejando cuántos apartamentos han tenido un número determinado de reviews. Tras ello veremos si esta frecuencia tiene junto el rango de distintas frecuencas dadas, una relación potencial o "power law".
 
 ```{r}
-library(readr)
 listing <- read_csv("data/listingsCiudadesLimpio.csv")
 
 
@@ -40,10 +54,9 @@ tabla_frecuencias<- table(aux)
 Tras recopilar las frecuencias, presentamos la gráfica.
 
 ```{r}
-
-# freqs_data<-as.data.frame(tabla_frecuencias)
-# str(freqs_data)
-# ggplot(data = freqs_data, aes(x = freqs_data$aux, y = freqs_data$Freq, group = 1))+geom_point()+labs(title = "frecuencias vs rango frecuencias")+xlab("rango frecuencias")+ylab("frecuencias")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+freqs_data<-as.data.frame(tabla_frecuencias)
+str(freqs_data)
+ggplot(data = freqs_data, aes(x = freqs_data$aux, y = freqs_data$Freq, group = 1))+geom_point()+labs(title = "frecuencias vs rango frecuencias")+xlab("rango frecuencias")+ylab("frecuencias")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
 
 
@@ -55,8 +68,6 @@ De la gráfica podemos observar y ,por tanto, confirmar que sí se sigue una rel
 Limpiar nombres y características que no se usan.
 
 ```{r}
-
-library("data.table") 
 
 reviewsMallorca <- read_csv("data/Mallorca/reviews.csv")
 reviewsBarcelona <- read_csv("data/Barcelona/reviews.csv")
@@ -94,10 +105,6 @@ listings$X..offline_government_id <- NULL
 
 
 ```{r}
-library("data.table") 
-library(magrittr)
-library(dplyr)
-library(forcats)
 
 #para que salga en inglés
 Sys.setlocale("LC_TIME","C")
@@ -248,8 +255,6 @@ Tras obtener los cinco barrios con mas viviendas de las cinco ciudades pasamos a
 
 ```{r}
 
-library("dplyr")
-
 for(j in 1:length(barriosTotales)){
   
   for(i in 1:length(barriosTotales[,j])){
@@ -316,12 +321,6 @@ cpriceBuenosAires <- priceBuenosAires[priceColumns]
 
 # Si queremos comparar las ciudades tendríamos que coger los datos de forma coherente, empezando por una misma fecha, pore ejemplo a partir del 1 de noviembre de 2021 para tener todos los datos en el mismo inicio. Podría hacerse como sigue:
 
-#cpriceMallorca <- select(cpriceMallorca[cpriceMallorca$date >= "2021-11-01",], date, price)
-#cpriceBarcelona <- select(cpriceBarcelona[cpriceBarcelona$date >= "2021-11-01",], date, price)
-#cpriceValencia <- select(cpriceValencia[cpriceValencia$date >= "2021-11-01",], date, price)
-#cpriceMexico <- select(cpriceMexico[cpriceMexico$date >= "2021-11-01",], date, price)
-#cpriceBuenosAires <- select(cpriceBuenosAires[cpriceBuenosAires$date >= "2021-11-01",], date, price)
-
 # Añadimos la columna para la ciudad
 dfpriceMallorca <- cbind(cpriceMallorca,Ciudad=c("Mallorca"))
 dfpriceBarcelona <- cbind(cpriceBarcelona,Ciudad=c("Barcelona"))
@@ -345,21 +344,14 @@ prices$price = gsub("\\,", "", prices$price)
 prices$price = as.numeric(gsub("\\$", "", prices$price))
 prices$date <- as.Date(prices$date)
 prices<-na.omit(prices)
-# colSums(is.na(prices))
+
+prices$price[prices$Ciudad == "Mexico"]<- prices$price[prices$Ciudad == "Mexico"] * 0.043
+prices$price[prices$Ciudad == "Buenos Aires"]<- prices$price[prices$Ciudad == "Buenos Aires"] * 0.0086
 
 ```
 
+
 ```{r}
-
-
-
-
-# dfpriceMallorca$price = gsub("\\,", "", dfpriceMallorca$price)
-# 
-# dfpriceMallorca$price = as.numeric(gsub("\\$", "", dfpriceMallorca$price))
-# dfpriceMallorca$date <- as.Date(dfpriceMallorca$date)
-# dfpriceMallorca<-na.omit(dfpriceMallorca)
-# colSums(is.na(dfpriceMallorca))
 # Para mirar en que fechas empiezan y acaban los datos para cada ciudad:
 
 mMallorca<-min(select(prices[prices$Ciudad == "Mallorca",],date)$date, na.rm = TRUE)
@@ -373,13 +365,6 @@ MBarcelona<-max(select(prices[prices$Ciudad == "Barcelona",],date)$date, na.rm =
 MValencia<-max(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = TRUE)
 MMexico<-max(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
 MBuenosAires<-max(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
-
-# Número total de días para los que se tienen datos
-MMallorca-mMallorca
-MBarcelona-mBarcelona
-MValencia-mValencia
-MMexico-mMexico
-MBuenosAires-mBuenosAires
 ```
 # Serie temporal para cada ciudad:
 
@@ -387,593 +372,144 @@ MBuenosAires-mBuenosAires
 # podríamos utilizar un filtro para no considerarlos, si se quieren filtar o mostrar todos los datos basta con
 # comentar o descomentar la primera línea.
 
-# Mallorca
 ```{r}
+diasCiudad<- data.frame()
+valoresCiudad<- data.frame()
+tsCiudad.ts<- ts()
 
-
-
-# prices <- filter(prices, (((Ciudad=="Valencia" | Ciudad=="Mallorca" | Ciudad=="Barcelona") & price<11000) | Ciudad=="Mexico" | Ciudad=="Buenos Aires")  & price>0)
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio diario
-
-# Media, mínimo y máximo de Mallorca
-
-valoresMallorca <- select(prices[prices$Ciudad == "Mallorca",],date,price,Ciudad) %>% group_by(date)
-
-diaMallorca  <-  valoresMallorca %>% group_by(date) %>% summarise(
+# bucle para filtrar los precios por día
+for(i in 1:length(unique(listing$Ciudad))){
+    
+  valoresCiudad<- select(prices[prices$Ciudad == unique(listing$Ciudad)[i],],date,price,Ciudad) %>% group_by(date)
+  
+  if(i == 1){
+    diasCiudad  <-  valoresCiudad %>% group_by(date) %>% group_by(date) %>% summarise(
     media = mean(price),
     maxim = max(price),
-    minim = min(price)
-  )
-
-diaMallorca
-
-# Time series de Mallorca
-tsMallorca.ts <- ts(select(diaMallorca,media,maxim,minim))
-plot(tsMallorca.ts[, 'media'], main = "Media precio diario Mallorca", ylab = "Precio diario")
-plot(tsMallorca.ts[, 'minim'], main = "Media precio mínimo Mallorca", ylab = "Precio diario")
-plot(tsMallorca.ts[, 'maxim'], main = "Media precio máximo Mallorca", ylab = "Precio diario")
-
-# Se obtienen resultados extraños, mínimo de zero y máximo muy grande, con un summary, verificamos que efectivamente, hay valores nulos y muy grandes en los datos iniciales
-
-# > mediaDiaMallorca
-# # A tibble: 366 × 4
-#    date       media maxim minim
-#    <date>     <dbl> <dbl> <dbl>
-#  1 2021-10-14  217. 21000     0
-#  2 2021-10-15  224. 21000     0
-#  3 2021-10-16  223. 21000     0
-#  4 2021-10-17  222. 21000     0
-#  5 2021-10-18  221. 21000     0
-#  6 2021-10-19  221. 21000     0
-#  7 2021-10-20  221. 21000     0
-#  8 2021-10-21  221. 21000     0
-#  9 2021-10-22  222. 21000     0
-# 10 2021-10-23  222. 21000     0
-# # … with 356 more rows
-
-#summary(prices)
-      #      date                price           Ciudad         
-      # Min.   :2021-10-11   Min.   :     0   Length:28067022   
-      # 1st Qu.:2022-01-19   1st Qu.:   106   Class :character  
-      # Median :2022-04-20   Median :   350   Mode  :character  
-      # Mean   :2022-04-20   Mean   :  1956                     
-      # 3rd Qu.:2022-07-20   3rd Qu.:  1592                     
-      # Max.   :2022-10-30   Max.   :997739
+    minim = min(price),
+    Ciudad = unique(valoresCiudad$Ciudad)
+    )
   
-# y la conversión de los datos es correcta, ya que el valor 49999 en prices, por ejemplo
-
-      # > prices[1932716,]
-      #               date price   Ciudad
-      # 1932716 2022-01-09 49999 Mallorca
-
-# es la conversión de
-
-      #> cpriceMallorca[1932716,]
-      # # A tibble: 1 × 2
-      #   date       price     
-      #   <date>     <chr>     
-      # 1 2022-01-09 $49,999.00
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio mensual
-
-# Precio mensual Mallorca
-mesMallorca <- valoresMallorca %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-           
-mesMallorca
-
-# Time series de Mallorca
-tsMallorca.ts.m <- ts(select(mesMallorca,media,maxim,minim))
-plot(tsMallorca.ts.m[, 'media'], main = "Media precio mes Mallorca", ylab = "Precio mensual")
-plot(tsMallorca.ts.m[, 'minim'], main = "Media precio mínimo Mallorca", ylab = "Precio mensual")
-plot(tsMallorca.ts.m[, 'maxim'], main = "Media precio máximo Mallorca", ylab = "Precio mensual")
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio Anual
-
-añoMallorca <- valoresMallorca %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoMallorca
-
-# Time series de Mallorca
-tsMallorca.ts.a <- ts(select(añoMallorca,media,maxim,minim), start="2021", end="2022")
-plot(tsMallorca.ts.a[, 'media'], main = "Media precio año Mallorca", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsMallorca.ts.a[, 'minim'], main = "Media precio mínimo Mallorca", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsMallorca.ts.a[, 'maxim'], main = "Media precio máximo Mallorca", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-  
-```
-
-Barcelona
-
-```{r}
-# Media, mínimo y máximo de Barcelona
-
-valoresBarcelona <- select(prices[prices$Ciudad == "Barcelona",],date,price,Ciudad) %>% group_by(date)
-diaBarcelona  <-  valoresBarcelona %>% group_by(date) %>% summarise(
+  } else {
+    diasCiudad  <-  rbind(diasCiudad,valoresCiudad %>% group_by(date) %>% group_by(date) %>% summarise(
     media = mean(price),
     maxim = max(price),
-    minim = min(price)
-  )
-
-diaBarcelona
-
-# Time series de Barcelona
-tsBarcelona.ts <- ts(select(diaBarcelona,media,maxim,minim))
-plot(tsBarcelona.ts[, 'media'], main = "Media precio diario Barcelona", ylab = "Precio diario")
-plot(tsBarcelona.ts[, 'minim'], main = "Media precio mínimo Barcelona", ylab = "Precio diario")
-plot(tsBarcelona.ts[, 'maxim'], main = "Media precio máximo Barcelona", ylab = "Precio diario")
-
-# Precio mensual Barcelona
-mesBarcelona <- valoresBarcelona %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-
-mesBarcelona
-
-# Time series de Barcelona
-tsBarcelona.ts.m <- ts(select(mesBarcelona,media,maxim,minim))
-plot(tsBarcelona.ts.m[, 'media'], main = "Media precio mes Barcelona", ylab = "Precio mensual")
-plot(tsBarcelona.ts.m[, 'minim'], main = "Media precio mínimo Barcelona", ylab = "Precio mensual")
-plot(tsBarcelona.ts.m[, 'maxim'], main = "Media precio máximo Barcelona", ylab = "Precio mensual")
-
-# Precio anual Barcelona
-añoBarcelona <- valoresBarcelona %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoBarcelona
-
-# Time series de Barcelona
-tsBarcelona.ts.a <- ts(select(añoBarcelona,media,maxim,minim), start="2021", end="2022")
-plot(tsBarcelona.ts.a[, 'media'], main = "Media precio año Barcelona", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsBarcelona.ts.a[, 'minim'], main = "Media precio mínimo Barcelona", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsBarcelona.ts.a[, 'maxim'], main = "Media precio máximo Barcelona", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
+    minim = min(price),
+    Ciudad = unique(valoresCiudad$Ciudad)
+    ))
+  }
+  
+  tsCiudad.ts<-ts(select(diasCiudad,media,maxim,minim,Ciudad))
+  
+}
 
 ```
 
-Valencia
+#Elaboramos las gráficas para la evolución por días.
 
 ```{r}
-# Media, mínimo y máximo de Valencia
+# precio medio
+ggplot(data = diasCiudad, aes(x = date, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por día")+ylab("precio medio")+xlab("día")+scale_x_date(guide = guide_axis(check.overlap = TRUE))
 
-valoresValencia <- select(prices[prices$Ciudad == "Valencia",],date,price,Ciudad) %>% group_by(date)
+#precio minimo
+ggplot(data = diasCiudad, aes(x = date, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por día")+ylab("precio mínimo")+xlab("día")+scale_x_date(guide = guide_axis(check.overlap = TRUE))
 
-diaValencia  <-  valoresValencia %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
-
-diaValencia
-
-# Time series de Valencia
-tsValencia.ts <- ts(select(diaValencia,media,maxim,minim))
-plot(tsValencia.ts[, 'media'], main = "Media precio diario Valencia", ylab = "Precio diario")
-plot(tsValencia.ts[, 'minim'], main = "Media precio mínimo Valencia", ylab = "Precio diario")
-plot(tsValencia.ts[, 'maxim'], main = "Media precio máximo Valencia", ylab = "Precio diario")
-
-# Precio mensual Valencia
-mesValencia <- valoresValencia %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesValencia
-
-# Time series de Valencia
-tsValencia.ts.m <- ts(select(mesValencia,media,maxim,minim))
-plot(tsValencia.ts.m[, 'media'], main = "Media precio mes Valencia", ylab = "Precio mensual")
-plot(tsValencia.ts.m[, 'minim'], main = "Media precio mínimo Valencia", ylab = "Precio mensual")
-plot(tsValencia.ts.m[, 'maxim'], main = "Media precio máximo Valencia", ylab = "Precio mensual")
-
-# Precio anual Valencia
-añoValencia <- valoresValencia %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoValencia
-
-# Time series de Valencia
-tsValencia.ts.a <- ts(select(añoValencia,media,maxim,minim), start="2021", end="2022")
-plot(tsValencia.ts.a[, 'media'], main = "Media precio año Valencia", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsValencia.ts.a[, 'minim'], main = "Media precio mínimo Valencia", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsValencia.ts.a[, 'maxim'], main = "Media precio máximo Valencia", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-
+#precio máximo
+ggplot(data = diasCiudad, aes(x = date, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por día")+ylab("precio máximo")+xlab("día")+scale_x_date(guide = guide_axis(check.overlap = TRUE))
 ```
 
-Mexico
 
 ```{r}
-# Media, mínimo y máximo de Mexico
+# bucle para filtrar los precios por mes
+mesCiudad<- data.frame()
+valores_mes_Ciudad<- data.frame()
+ts_mes_Ciudad.ts<- ts()
 
-valoresMexico <- select(prices[prices$Ciudad == "Mexico",],date,price,Ciudad) %>% group_by(date)
-
-diaMexico  <-  valoresMexico %>% group_by(date) %>% summarise(
+# bucle para filtrar los precios por mes
+for(i in 1:length(unique(listing$Ciudad))){
+    
+  valores_mes_Ciudad<- select(prices[prices$Ciudad == unique(listing$Ciudad)[i],],date,price,Ciudad) %>% group_by(date)
+  
+  if(i == 1){
+    mesCiudad  <-  valores_mes_Ciudad %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>% group_by(month, year) %>% summarise(
     media = mean(price),
     maxim = max(price),
-    minim = min(price)
-  )
-
-# Time series de Mexico
-tsMexico.ts <- ts(select(diaMexico,media,maxim,minim))
-plot(tsMexico.ts[, 'media'], main = "Media precio diario México", ylab = "Precio diario")
-plot(tsMexico.ts[, 'minim'], main = "Media precio mínimo México", ylab = "Precio diario")
-plot(tsMexico.ts[, 'maxim'], main = "Media precio máximo México", ylab = "Precio diario")
-
-# Precio mensual Mexico
-mesMexico <- valoresMexico %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesMexico
-
-# Time series de Mexico
-tsMexico.ts.m <- ts(select(mesMexico,media,maxim,minim))
-plot(tsMexico.ts.m[, 'media'], main = "Media precio mes Mexico", ylab = "Precio mensual")
-plot(tsMexico.ts.m[, 'minim'], main = "Media precio mínimo Mexico", ylab = "Precio mensual")
-plot(tsMexico.ts.m[, 'maxim'], main = "Media precio máximo Mexico", ylab = "Precio mensual")
-
-# Precio anual Mexico
-añoMexico    <- valoresMexico %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoMexico
-
-# Time series de Mexico
-tsMexico.ts.a <- ts(select(añoMexico,media,maxim,minim), start="2021", end="2022")
-plot(tsMexico.ts.a[, 'media'], main = "Media precio año Mexico", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsMexico.ts.a[, 'minim'], main = "Media precio mínimo Mexico", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsMexico.ts.a[, 'maxim'], main = "Media precio máximo Mexico", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
+    minim = min(price),
+    Ciudad = unique(valores_mes_Ciudad$Ciudad)
+    )
+  
+  } else {
+    mesCiudad  <-  rbind(mesCiudad,valores_mes_Ciudad %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>% group_by(month, year) %>% summarise(
+    media = mean(price),
+    maxim = max(price),
+    minim = min(price),
+    Ciudad = unique(valores_mes_Ciudad$Ciudad)
+    ))
+  }
+  
+  ts_mes_Ciudad.ts<-ts(select(mesCiudad,media,maxim,minim,Ciudad))
+  
+}
 
 ```
-
-Buenos Aires
+#Elaboramos las gráficas para la evolución por meses.
 
 ```{r}
-# Media, mínimo y máximo de Buenos Aires
+# precio medio
+ggplot(data = mesCiudad, aes(x = month, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por mes")+ylab("precio medio")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
-valoresBuenosAires <- select(prices[prices$Ciudad == "Buenos Aires",],date,price,Ciudad) %>% group_by(date)
+#precio minimo
+ggplot(data = mesCiudad, aes(x = month, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por mes")+ylab("precio mínimo")+lab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
-diaBuenosAires  <-  valoresBuenosAires %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
-  
-diaBuenosAires
-
-# Time series de Buenos Aires
-tsBuenosAires.ts <- ts(select(diaBuenosAires,media,maxim,minim))
-plot(tsBuenosAires.ts[, 'media'], main="Media precio diario Buenos Aires", ylab ="Precio diario")
-plot(tsBuenosAires.ts[, 'minim'], main="Media precio mínimo Buenos Aires", ylab ="Precio diario")
-plot(tsBuenosAires.ts[, 'maxim'], main="Media precio máximo Buenos Aires", ylab ="Precio diario")
-
-# Precio mensual Buenos Aires
-mesBuenosAires <- valoresBuenosAires %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesBuenosAires
-
-# Time series de Buenos Aires
-tsBuenosAires.ts.m <- ts(select(mesBuenosAires,media,maxim,minim))
-plot(tsBuenosAires.ts.m[, 'media'], main="Media precio mes Buenos Aires", ylab="Precio mensual")
-plot(tsBuenosAires.ts.m[, 'minim'], main="Media precio mínimo Buenos Aires", ylab="Precio mensual")
-plot(tsBuenosAires.ts.m[, 'maxim'], main="Media precio máximo Buenos Aires", ylab="Precio mensual")
-
-# Precio anual Buenos Aires
-añoBuenosAires <- valoresBuenosAires %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-
-añoBuenosAires
-
-# Time series de Buenos Aires
-tsBuenosAires.ts.a <- ts(select(añoBuenosAires,media,maxim,minim), start="2021", end="2022")
-plot(tsBuenosAires.ts.a[, 'media'], main = "Media precio año Buenos Aires", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsBuenosAires.ts.a[, 'minim'], main = "Media precio mínimo Buenos Aires", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-plot(tsBuenosAires.ts.a[, 'maxim'], main = "Media precio máximo Buenos Aires", ylab = "Precio anual",xaxt = "n")
-axis(1,at = c(2021, 2022),labels = c("2021", "2022"))
-
+#precio máximo
+ggplot(data = mesCiudad, aes(x = month, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por mes")+ylab("precio máximo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
+
 
 ```{r}
+# bucle para filtrar los precios por año
+añoCiudad<- data.frame()
+valores_año_Ciudad<- data.frame()
+ts_año_Ciudad.ts<- ts()
 
-# Para probar de forma rápida, cogemos los n primeros valors. Comentar esta línea para utilizarlos todos
-#prices <- prices[1:10000,]
-
-# y limpiamos los datos
-
-prices$price = gsub("\\,", "", prices$price)
-
-prices$price = as.numeric(gsub("\\$", "", prices$price))
-prices$date <- as.Date(prices$date)
-prices<-na.omit(prices)
-# colSums(is.na(prices))
-
-
-dfpriceMallorca$price = gsub("\\,", "", dfpriceMallorca$price)
-
-dfpriceMallorca$price = as.numeric(gsub("\\$", "", dfpriceMallorca$price))
-dfpriceMallorca$date <- as.Date(dfpriceMallorca$date)
-dfpriceMallorca<-na.omit(dfpriceMallorca)
-colSums(is.na(dfpriceMallorca))
-# Para mirar en que fechas empiezan y acaban los datos para cada ciudad:
-
-mMallorca<-min(select(prices[prices$Ciudad == "Mallorca",],date)$date, na.rm = TRUE)
-mBarcelona<-min(select(prices[prices$Ciudad == "Barcelona",],date)$date, na.rm = TRUE)
-mValencia<-min(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = TRUE)
-mMexico<-min(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
-mBuenosAires<-min(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
-
-MMallorca<-max(select(prices[prices$Ciudad == "Mallorca",],date)$date, na.rm = TRUE)
-MBarcelona<-max(select(prices[prices$Ciudad == "Barcelona",],date)$date, na.rm = TRUE)
-MValencia<-max(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = TRUE)
-MMexico<-max(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
-MBuenosAires<-max(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
-
-# Número total de días para los que se tienen datos
-MMallorca-mMallorca
-MBarcelona-mBarcelona
-MValencia-mValencia
-MMexico-mMexico
-MBuenosAires-mBuenosAires
-
-# Serie temporal para cada ciudad:
-# stMallorca <- select(prices[prices$Ciudad == "Mallorca",],price)
-# stBarcelona <- select(prices[prices$Ciudad == "Barcelona",],price)
-# stValencia <- select(prices[prices$Ciudad == "Valencia",],price)
-# stMexico <- select(prices[prices$Ciudad == "Mexico",],price)
-# stBuenosAires <- select(prices[prices$Ciudad == "BuenosAires",],price)
-# newdata<-cpriceBuenosAires[order(cpriceBuenosAires$date),]
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio diario
-
-# Media, mínimo y máximo
-valoresMallorca <- select(prices[prices$Ciudad == "Mallorca",],date,price,Ciudad) %>% group_by(date)
-
-diaMallorca  <-  valoresMallorca %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
-
-dmediaM <- ts(c(diaMallorca$media))
-dmediaM
-plot.ts(dmediaM)
-
-dminimM <- ts(c(diaMallorca$minim))
-dminimM
-plot.ts(dminimM)
-
-dmaximM <- ts(c(diaMallorca$maxim))
-dmaximM
-plot.ts(dmaximM)
-# Se obtienen resultados extraños, mínimo de zero y máximo de 21000, con un summary, verificamos que efectivamente, hay valores nulos y muy grandes en los datos iniciales
-
-# > mediaDiaMallorca
-# # A tibble: 366 × 4
-#    date       media maxim minim
-#    <date>     <dbl> <dbl> <dbl>
-#  1 2021-10-14  217. 21000     0
-#  2 2021-10-15  224. 21000     0
-#  3 2021-10-16  223. 21000     0
-#  4 2021-10-17  222. 21000     0
-#  5 2021-10-18  221. 21000     0
-#  6 2021-10-19  221. 21000     0
-#  7 2021-10-20  221. 21000     0
-#  8 2021-10-21  221. 21000     0
-#  9 2021-10-22  222. 21000     0
-# 10 2021-10-23  222. 21000     0
-# # … with 356 more rows
-
-summary(prices)
-      #      date                price           Ciudad         
-      # Min.   :2021-10-11   Min.   :     0   Length:28067022   
-      # 1st Qu.:2022-01-19   1st Qu.:   106   Class :character  
-      # Median :2022-04-20   Median :   350   Mode  :character  
-      # Mean   :2022-04-20   Mean   :  1956                     
-      # 3rd Qu.:2022-07-20   3rd Qu.:  1592                     
-      # Max.   :2022-10-30   Max.   :997739
+# bucle para filtrar los precios por año
+for(i in 1:length(unique(listing$Ciudad))){
+    
+  valores_año_Ciudad<- select(prices[prices$Ciudad == unique(listing$Ciudad)[i],],date,price,Ciudad) %>% group_by(date)
   
-# y la conversión de los datos es correcta, ya que el valor 49999 en prices, por ejemplo
-
-      # > prices[1932716,]
-      #               date price   Ciudad
-      # 1932716 2022-01-09 49999 Mallorca
-
-# es la conversión de
-
-      #> cpriceMallorca[1932716,]
-      # # A tibble: 1 × 2
-      #   date       price     
-      #   <date>     <chr>     
-      # 1 2022-01-09 $49,999.00
+  if(i == 1){
+    añoCiudad  <-  valores_año_Ciudad %>% mutate(year = format(date, "%Y")) %>% group_by(year) %>% summarise(
+    media = mean(price),
+    maxim = max(price),
+    minim = min(price),
+    Ciudad = unique(valores_año_Ciudad$Ciudad)
+    )
   
-
-valoresBarcelona <- select(prices[prices$Ciudad == "Barcelona",],date,price,Ciudad) %>% group_by(date)
-
-diaBarcelona  <-  valoresBarcelona %>% group_by(date) %>% summarise(
+  } else {
+    añoCiudad  <-  rbind(añoCiudad,valores_año_Ciudad %>% mutate(year = format(date, "%Y")) %>% group_by(year) %>% summarise(
     media = mean(price),
     maxim = max(price),
-    minim = min(price)
-  )
-
-diaBarcelona
-
-valoresValencia <- select(prices[prices$Ciudad == "Valencia",],date,price,Ciudad) %>% group_by(date)
-
-diaValencia  <-  valoresValencia %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
-
-diaValencia
-
-valoresMexico <- select(prices[prices$Ciudad == "Mexico",],date,price,Ciudad) %>% group_by(date)
-
-diaMexico  <-  valoresMexico %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
-
-
-diaBuenosAires
-
-valoresBuenosAires <- select(prices[prices$Ciudad == "Buenos Aires",],date,price,Ciudad) %>% group_by(date)
-
-diaBuenosAires  <-  valoresBuenosAires %>% group_by(date) %>% summarise(
-    media = mean(price),
-    maxim = max(price),
-    minim = min(price)
-  )
+    minim = min(price),
+    Ciudad = unique(valores_año_Ciudad$Ciudad)
+    ))
+  }
   
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio mensual
-
-
-mesMallorca <- valoresMallorca %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-           
-mesMallorca
-
-mM <- ts(c(mesMallorca$media))
-mM
-plot.ts(mM)
-
-mesBarcelona <- valoresBarcelona %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-
-mesBarcelona
-
-mesValencia <- valoresValencia %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesValencia
-
-mesMexico <- valoresMexico %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesMexico
-
-mesBuenosAires <- valoresBuenosAires %>% mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
-                    group_by(month, year) %>%
-                    summarise(
-                      media = mean(price),
-                      maxim = max(price),
-                      minim = min(price)
-                    )
-mesBuenosAires
-
-# Agrupamos por dia los precios de cada ciudad y hacemos la media, mínimo i maximo del precio Anual
-
-añoMallorca <- valoresMallorca %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoMallorca
-
-aM <- ts(añoMallorca$media, start = c(2021), end = c(2022))
-aM
-plot.ts(aM)
-
-añoBarcelona <- valoresBarcelona %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoBarcelona
-
-añoValencia <- valoresValencia %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoValencia
-
-añoMexico    <- valoresMexico %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-añoMexico
-
-añoBuenosAires <- valoresBuenosAires %>% mutate(year = format(date, "%Y")) %>%
-                  group_by(year) %>%
-                  summarise(media = mean(price),
-                            maxim = max(price),
-                            minim = min(price))
-
-
+  ts_año_Ciudad.ts<-ts(select(añoCiudad,media,maxim,minim,Ciudad))
+  
+}
 ```
-```{r, include=FALSE}
-library(tidyverse)
-library(stringr)
-library(rgdal)
-library(rgeos)
-library(plotly)
-library(ggplot2)
+
+#Elaboramos las gráficas para la evolución por años.
+
+```{r}
+# precio medio
+ggplot(data = añoCiudad, aes(x = year, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por año")+ylab("precio medio")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+
+#precio minimo
+ggplot(data = añoCiudad, aes(x = year, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por año")+ylab("precio mínimo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+
+#precio máximo
+ggplot(data = añoCiudad, aes(x = year, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por año")+ylab("precio máximo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
 
 ## Apartado 5##
