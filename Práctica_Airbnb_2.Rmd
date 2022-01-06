@@ -40,9 +40,10 @@ tabla_frecuencias<- table(aux)
 Tras recopilar las frecuencias, presentamos la gráfica.
 
 ```{r}
-freqs_data<-as.data.frame(tabla_frecuencias)
-str(freqs_data)
-ggplot(data = freqs_data, aes(x = freqs_data$aux, y = freqs_data$Freq, group = 1))+geom_point()+labs(title = "frecuencias vs rango frecuencias")+xlab("rango frecuencias")+ylab("frecuencias")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+
+# freqs_data<-as.data.frame(tabla_frecuencias)
+# str(freqs_data)
+# ggplot(data = freqs_data, aes(x = freqs_data$aux, y = freqs_data$Freq, group = 1))+geom_point()+labs(title = "frecuencias vs rango frecuencias")+xlab("rango frecuencias")+ylab("frecuencias")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
 
 
@@ -966,3 +967,773 @@ añoBuenosAires <- valoresBuenosAires %>% mutate(year = format(date, "%Y")) %>%
 
 
 ```
+```{r, include=FALSE}
+library(tidyverse)
+library(stringr)
+library(rgdal)
+library(rgeos)
+library(plotly)
+library(ggplot2)
+```
+
+## Apartado 5##
+
+```{r, include=FALSE}
+mapa <- rgdal::readOGR(
+          paste0("./datos/lineas_limite/recintos_municipales_inspire_peninbal_etrs89/",
+                 "recintos_municipales_inspire_peninbal_etrs89.shp"), use_iconv = TRUE, encoding = "UTF-8"
+        )
+```
+
+```{r, include=FALSE}
+mapa_arg <- rgdal::readOGR(
+          paste0("./datos/lineas_limite/municipios_arg/",
+                 "barrios_badata_wgs84.shp"), use_iconv = TRUE, encoding = "UTF-8"
+        )
+```
+
+```{r, include=FALSE}
+mapa_mex <- rgdal::readOGR(
+          paste0("./datos/lineas_limite/municipios_mex/",
+                 "mun.shp"), use_iconv = TRUE, encoding = "UTF-8"
+        )
+```
+
+```{r, include=FALSE}
+mapa_bcn <- rgdal::readOGR(
+          paste0("./datos/lineas_limite/barcelona_distrito/",
+                 "shapefiles_barcelona_distrito.shp"), use_iconv = TRUE, encoding = "UTF-8"
+        )
+```
+
+```{r, include=FALSE}
+mapa_vlc <- rgdal::readOGR(
+          paste0("./datos/lineas_limite/valencia_distrito/",
+                 "DISTRITOS.shp"), use_iconv = TRUE, encoding = "UTF-8"
+        )
+```
+
+```{r}
+names(mapa)
+```
+```{r}
+names(mapa_bcn)
+```
+```{r}
+names(mapa_vlc)
+```
+
+```{r}
+names(mapa_mex)
+```
+
+```{r}
+
+mapa_df <- fortify(model = mapa, region = "NATCODE")
+head(mapa_df)
+```
+```{r}
+mapa_arg_df <- fortify(model = mapa_arg, region = "BARRIO")
+head(mapa_arg_df)
+```
+```{r}
+mapa_mex_df <- fortify(model = mapa_mex, region = "CVEGEO")
+mapa_mex_df$long <- mapa_mex_df$long / 100000
+mapa_mex_df$lat <- mapa_mex_df$lat / 100000
+head(mapa_mex_df)
+```
+
+```{r}
+mapa_bcn_df <- fortify(model = mapa_bcn, region = "c_distri")
+head(mapa_bcn_df)
+```
+```{r}
+mapa_vlc_df <- fortify(model = mapa_vlc, region = "coddistrit")
+mapa_vlc_df$long <- mapa_vlc_df$long / 100000
+mapa_vlc_df$lat <- mapa_vlc_df$lat / 100000
+head(mapa_vlc_df)
+```
+
+```{r}
+info_municipios <- mapa@data
+head(info_municipios)
+```
+
+```{r}
+info_municipios_arg <- mapa_arg@data
+info_municipios_arg$COMUNA <- as.character(info_municipios_arg$COMUNA)
+head(info_municipios_arg)
+```
+
+```{r}
+info_municipios_mex <- mapa_mex@data
+head(info_municipios_mex)
+```
+```{r}
+info_municipios_bcn <- mapa_bcn@data
+Encoding(info_municipios_bcn$n_distri) <- "UTF-8"
+head(info_municipios_bcn)
+```
+```{r}
+info_municipios_vlc <- mapa_vlc@data
+head(info_municipios_vlc)
+```
+
+
+```{r}
+info_municipios <- info_municipios %>%
+                    mutate(
+                      pais       = str_sub(string = NATCODE, start = 1, end = 2),
+                      c_autonoma = str_sub(string = NATCODE, start = 3, end = 4),
+                      provincia  = str_sub(string = NATCODE, start = 5, end = 6),
+                      municipio  = str_sub(string = NATCODE, start = 7, end = -1)
+                    ) %>%
+                    rename(nombre_municipio = NAMEUNIT)
+
+# Se seleccionan las columnas de interés
+info_municipios <- info_municipios %>%
+                   select(
+                     NATCODE, nombre_municipio, c_autonoma, provincia, municipio
+                   )
+```
+
+```{r}
+info_municipios_bcn <- info_municipios_bcn %>%
+                   select(
+                     c_distri, n_distri
+                   )
+```
+
+```{r}
+# Se añade la información de los municipios
+mapa_df <- mapa_df %>%
+           left_join(info_municipios, by = c("id" = "NATCODE"))
+```
+
+```{r}
+# Se añade la información de los municipios
+mapa_arg_df <- mapa_arg_df %>%
+           left_join(info_municipios_arg, by = c("id" = "BARRIO"))
+mapa_arg_df$id <- tolower(mapa_arg_df$id)
+mapa_arg_df$id <- gsub("(^|[[:space:]])([[:alpha:]])", "\\1\\U\\2",    # Uppercase with Base R
+     mapa_arg_df$id,
+     perl = TRUE)
+```
+
+```{r}
+# Se añade la información de los municipios
+mapa_mex_df <- mapa_mex_df %>%
+           left_join(info_municipios_mex, by = c("id" = "CVEGEO"))
+```
+
+```{r}
+mapa_bcn_df <- mapa_bcn_df %>%
+           left_join(info_municipios_bcn, by = c("id" = "c_distri"))
+```
+
+```{r}
+mapa_vlc_df <- mapa_vlc_df %>%
+           left_join(info_municipios_vlc, by = c("id" = "coddistrit"))
+```
+
+```{r}
+# Se eliminan puntos (se reduce la resolución)
+mapa_df <- mapa_df %>%
+           slice(seq(1, nrow(mapa_df), 5))
+```
+
+```{r}
+# Se eliminan puntos (se reduce la resolución)
+mapa_arg_df <- mapa_arg_df %>%
+           slice(seq(1, nrow(mapa_arg_df), 5))
+```
+
+```{r}
+# Se eliminan puntos (se reduce la resolución)
+mapa_mex_df <- mapa_mex_df %>%
+           slice(seq(1, nrow(mapa_mex_df), 5))
+```
+
+```{r}
+# Se eliminan puntos (se reduce la resolución)
+mapa_bcn_df <- mapa_bcn_df %>%
+           slice(seq(1, nrow(mapa_bcn_df), 5))
+```
+
+```{r}
+# Se eliminan puntos (se reduce la resolución)
+mapa_vlc_df <- mapa_vlc_df %>%
+           slice(seq(1, nrow(mapa_vlc_df), 5))
+```
+
+```{r}
+# mapa_df %>%
+# ggplot(aes(x = long, y = lat, group = group)) +
+#   geom_polygon(color = "gray20", fill = "white") + 
+#   coord_map("mercator") +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_blank(),
+#     axis.ticks =  element_blank(),
+#     axis.title = element_blank(),
+#     panel.border = element_blank(),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank()
+#   )
+```
+
+```{r}
+# mapa_arg_df %>%
+# ggplot(aes(x = long, y = lat, group = group)) +
+#   geom_polygon(color = "gray20", fill = "white") + 
+#   coord_map("mercator") +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_blank(),
+#     axis.ticks =  element_blank(),
+#     axis.title = element_blank(),
+#     panel.border = element_blank(),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank()
+#   )
+```
+```{r}
+# mapa_mex_df %>%
+# ggplot(aes(x = long, y = lat, group = group)) +
+#   geom_polygon(color = "gray20", fill = "white") + 
+#   coord_map("mercator") +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_blank(),
+#     axis.ticks =  element_blank(),
+#     axis.title = element_blank(),
+#     panel.border = element_blank(),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank()
+#   )
+```
+
+
+```{r}
+# mapa_vlc_df %>%
+# ggplot(aes(x = long, y = lat, group = group)) +
+#   geom_polygon(color = "black") +
+#   coord_map("mercator") +
+#   scale_fill_viridis_c() +
+#   labs(title = "Municipios de Valencia",
+#        subtitle = "Color por población, Escala logarítmica") +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_blank(),
+#     axis.ticks =  element_blank(),
+#     axis.title = element_blank(),
+#     panel.border = element_blank(),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank()
+#   )
+```
+
+
+```{r}
+# mapa_bcn_df %>%
+# ggplot(aes(x = long, y = lat, group = group)) +
+#   geom_polygon(color = "black") +
+#   coord_map("mercator") +
+#   scale_fill_viridis_c() +
+#   labs(title = "Municipios de Barcelona",
+#        subtitle = "Color por población, Escala logarítmica") +
+#   theme_bw() +
+#   theme(
+#     axis.text.x = element_blank(),
+#     axis.text.y = element_blank(),
+#     axis.ticks =  element_blank(),
+#     axis.title = element_blank(),
+#     panel.border = element_blank(),
+#     panel.grid.major = element_blank(),
+#     panel.grid.minor = element_blank()
+#   )
+```
+
+
+
+```{r}
+# Se selecciona Ciudad de México
+mapa_df_ciumex <- mapa_mex_df %>% filter(CVE_ENT == "09")
+```
+
+
+```{r}
+reviews <- read_csv("data/reviewsCiudades.csv")
+listings <- read_csv("data/listingsCiudadesLimpio.csv")
+```
+```{r}
+reviews <- reviews %>% select(listing_id, id, date)
+reviews <- reviews %>% filter(date >= "2020-12-23" & date <= "2021-02-01")
+head(reviews)
+```
+
+```{r}
+listings <- listings %>% select(id, price, Ciudad, neighbourhood_cleansed)
+listings$neighbourhood_cleansed <- tolower(listings$neighbourhood_cleansed)
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "palma de mallorca"="palma")
+
+#BARCELONA
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el raval"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el barri gòtic"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la barceloneta"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant pere, santa caterina i la ribera"="ciutat vella")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el fort pienc"="eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la sagrada família"="eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la dreta de l'eixample"="eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "l'antiga esquerra de l'eixample"="eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la nova esquerra de l'eixample"="eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant antoni"="eixample")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el poble sec"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la marina del prat vermell"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la marina de port "="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la font de la guatlla"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "hostafrancs"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la bordeta"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sants-badal"="sants-montjuïc")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sants"="sants-montjuïc")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "les corts"="les corts")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la maternitat i sant ramon"="les corts")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "pedralbes"="les corts")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vallvidrera, el tibidabo i les planes"="sarrià-sant gervasi")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sarrià"="sarrià-sant gervasi")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "les tres torres"="sarrià-sant gervasi")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant gervasi-bonanova"="sarrià-sant gervasi")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant gervasi-galvany"="sarrià-sant gervasi")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el putget i farró"="sarrià-sant gervasi")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vallcarca i els penitents"="gràcia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el coll"="gràcia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la salut"="gràcia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vila de gràcia"="gràcia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el camp d'en grassot i gràcia nova"="gràcia")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el baix guinardó"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "can baró"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el guinardó"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la font d'en fargues"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el carmel"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la teixonera"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant genís dels agudells"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "montbau"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la vall d'hebron"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la clota"="horta-guinardó")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "horta"="horta-guinardó")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vilapicina i la torre llobeta"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "porta"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el turó de la peira"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "can peguera"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la guineueta"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "canyelles"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "les roquetes"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "verdun"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la prosperitat"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la trinitat nova"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "torre baró"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "ciutat meridiana"="nou barris")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vallbona"="nou barris")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la trinitat vella"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "baró de viver"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el bon pastor"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant andreu"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la sagrera"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el congrés i els indians"="sant andreu")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "navas"="sant andreu")
+
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el camp de l'arpa del clot"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el clot"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el parc i la llacuna del poblenou"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la vila olímpica del poblenou"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el poblenou"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "diagonal mar i el front marítim del poblenou"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el besòs i el maresme"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "provençals del poblenou"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant martí de provençals"="sant martí")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la verneda i la pau"="sant martí")
+
+#VALENCIA
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "benifaraig"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "benicalap"="benicalap")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "torrefiel"="rascanya")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "tormos"="la saidia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant antoni"="la saidia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "benimaclet"="benimaclet")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "marxalenes"="la saidia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el calvari"="campanar")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "morvedre"="la saidia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "trinitat"="la saidia")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "les tendetes"="campanar")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "campanar"="campanar")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "jaume roig"="el pla del real")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el carme"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "ciutat universitaria"="el pla del real")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el botanic"="extramurs")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "exposicio"="el pla del real")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la seu"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la vega baixa"="algiros")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la petxina"="extramurs")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "betero"="poblats maritims")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "cabanyal-canyamelar"="poblats maritims")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "mestalla"="el pla del real")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la xerea"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el mercat"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el pilar"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant francesc"="ciutat vella")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el pla del remei"="l'eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "l'illa perduda"="algiros")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "albors"="camins al grau")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "arrancapins"="extramurs")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "aiora"="camins al grau")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la roqueta"="extramurs")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la gran via"="l'eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "tres forques"="l'olivereta")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "cami fondo"="camins al grau")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "patraix"="patraix")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "russafa"="l'eixample")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "penya-roja"="camins al grau")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la creu del grau"="camins al grau")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "mont-olivet"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la raiosa"="jesus")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "safranar"="patraix")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "ciutat de les arts i de les ciencies"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "en corts"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "na rovella"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant isidre"="patraix")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "malilla"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "favara"="patraix")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "l'hort de senabre"="jesus")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "natzaret"="poblats maritims")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la creu coberta"="jesus")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "cami real"="jesus")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la fonteta s.lluis"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant marcel.li"="jesus")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "l'amistat"="algiros")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la punta"="quatre carreres")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "rafalell-vistabella"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la carrasca"="algiros")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el grau"="poblats maritims")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "ciutat jardi"="algiros")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "nou moles"="l'olivereta")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "cami de vera"="benimaclet")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "benimamet"="poblats de l'oest")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "soternes"="l'olivereta")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la llum"="l'olivereta")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "beniferri"="poblats de l'oest")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el palmar"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el saler"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la fontsanta"="l'olivereta")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant llorens"="rascanya")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "els orriols"="rascanya")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el perellonet"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "vara de quart"="patraix")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "ciutat fallera"="benicalap")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la malva-rosa"="poblats maritims")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "carpesa"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "borboto"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "poble nou"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "les cases de barcena"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "mahuella-tauladella"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "sant pau"="campanar")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "massarrojos"="poblats del nord")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "faitanar"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "pinedo"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "castellar-l'oliveral"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "el forn d'alcedo"="poblats del sud")
+listings$neighbourhood_cleansed <- recode(listings$neighbourhood_cleansed, "la torre"="poblats del sud")
+
+mapa_df$nombre_municipio <- tolower(mapa_df$nombre_municipio)
+head(listings)
+```
+
+```{r}
+reviews <- reviews %>%
+           left_join(listings, by = c("listing_id" = "id"))
+reviews_1 <- aggregate(reviews[, 4], list(reviews$neighbourhood_cleansed), mean)
+reviews_2 <- aggregate(reviews$neighbourhood_cleansed, list(reviews$neighbourhood_cleansed), length)
+```
+
+```{r}
+mapa_df <- mapa_df %>% 
+           left_join(
+              y  = reviews_1,
+              by = c("nombre_municipio" = "Group.1")
+           )
+mapa_df <- mapa_df %>% 
+           left_join(
+              y  = reviews_2,
+              by = c("nombre_municipio" = "Group.1")
+           )
+head(mapa_df)
+```
+
+```{r}
+# Se selecciona Islas baleares
+
+
+mapa_df_mallorca <- mapa_df %>% filter(provincia == "07", long > 2.2, long < 3.5)
+
+mapa_df_mallorca %>%
+ggplot(aes(x = long, y = lat, group = group, fill = price)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Municipios de Mallorca",
+       subtitle = "Color por precio medio") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+```{r}
+mapa_df_mallorca %>%
+ggplot(aes(x = long, y = lat, group = group, fill = x)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Municipios de Mallorca",
+       subtitle = "Color por número reservas") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+
+```{r}
+mapa_bcn_df$n_distri <- tolower(mapa_bcn_df$n_distri)
+mapa_bcn_df <- mapa_bcn_df %>% 
+           left_join(
+              y  = reviews_1,
+              by = c("n_distri" = "Group.1")
+           )
+mapa_bcn_df <- mapa_bcn_df %>% 
+           left_join(
+              y  = reviews_2,
+              by = c("n_distri" = "Group.1")
+           )
+head(mapa_bcn_df)
+
+mapa_bcn_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = price)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Barcelona",
+       subtitle = "Color por precio medio") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+mapa_bcn_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = x)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Barcelona",
+       subtitle = "Color por número reservas") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+mapa_vlc_df$nombre <- tolower(mapa_vlc_df$nombre)
+mapa_vlc_df <- mapa_vlc_df %>% 
+           left_join(
+              y  = reviews_1,
+              by = c("nombre" = "Group.1")
+           )
+mapa_vlc_df <- mapa_vlc_df %>% 
+           left_join(
+              y  = reviews_2,
+              by = c("nombre" = "Group.1")
+           )
+head(mapa_vlc_df)
+
+mapa_vlc_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = price)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Valencia",
+       subtitle = "Color por precio medio") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+mapa_vlc_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = x)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Valencia",
+       subtitle = "Color por número reservas") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+mapa_arg_df$id <- tolower(mapa_arg_df$id)
+mapa_arg_df <- mapa_arg_df %>% 
+           left_join(
+              y  = reviews_1,
+              by = c("id" = "Group.1")
+           )
+mapa_arg_df <- mapa_arg_df %>% 
+           left_join(
+              y  = reviews_2,
+              by = c("id" = "Group.1")
+           )
+head(mapa_arg_df)
+
+mapa_arg_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = price)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Argentina",
+       subtitle = "Color por precio medio") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+```{r}
+mapa_arg_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = x)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Barrios de Argentina",
+       subtitle = "Color por número reservas") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
+
+```{r}
+mapa_ciumex_df <- mapa_mex_df %>% filter(CVE_ENT == "09")
+mapa_ciumex_df$NOMGEO <- tolower(mapa_ciumex_df$NOMGEO)
+mapa_ciumex_df <- mapa_ciumex_df %>% 
+           left_join(
+              y  = reviews_1,
+              by = c("NOMGEO" = "Group.1")
+           )
+mapa_ciumex_df <- mapa_ciumex_df %>% 
+           left_join(
+              y  = reviews_2,
+              by = c("NOMGEO" = "Group.1")
+           )
+head(mapa_ciumex_df)
+
+mapa_ciumex_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = price)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Ciudad de México",
+       subtitle = "Color por precio medio") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+```{r}
+mapa_ciumex_df %>%
+ggplot(aes(x = long, y = lat, group = group, fill = x)) +
+  geom_polygon(color = "black") +
+  coord_map("mercator") +
+  scale_fill_viridis_c() +
+  labs(title = "Ciudad de México",
+       subtitle = "Color número reservas") +
+  theme_bw() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks =  element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+```
+
