@@ -19,14 +19,10 @@ knitr::opts_chunk$set(echo = TRUE)
 **Seleccionamos columnas y fusionamos data frames en un solo archivo**
 
 ```{r}
-
-
-#install.packages("naniar")
-
 library(readr)
 library(naniar)
-library(tidyverse) #no sabemos si es necesaria
 
+#listing.csv
 listingsMallorca <- read_csv("data/Mallorca/listings.csv.gz")
 listingsBarcelona <- read_csv("data/Barcelona/listings.csv.gz")
 listingsValencia<- read_csv("data/Valencia/listings.csv.gz")
@@ -34,8 +30,6 @@ listingsMexico<- read_csv("data/Mexico/listings.csv.gz")
 listingsBuenosAires<- read_csv("data/Buenos_Aires/listings.csv.gz")
 
 selectedColumns <- c("id","host_response_time","host_response_rate","host_acceptance_rate","host_is_superhost","host_verifications","host_has_profile_pic","host_identity_verified","instant_bookable","number_of_reviews","number_of_reviews_ltm","number_of_reviews_l30d","review_scores_rating","review_scores_value","reviews_per_month","room_type","neighbourhood_cleansed","accommodates","bathrooms_text","bedrooms","beds","host_since","first_review","last_review","amenities","price")
-
-
 
 clistingsMallorca <- listingsMallorca[selectedColumns]
 clistingsBarcelona <- listingsBarcelona[selectedColumns]
@@ -54,6 +48,22 @@ listing <- rbind(dfMallorca, dfBarcelona, dfValencia, dfMexico, dfBuenosAires)
 
 #Guardamos los nuevos datos
 write_csv(x = listing, "data/listingsCiudades.csv")
+
+
+#reviews.csv
+reviewsMallorca <- cbind(read_csv("data/Mallorca/reviews.csv.gz"), Ciudad=c("Mallorca"))
+reviewsBarcelona <- cbind(read_csv("data/Barcelona/reviews.csv.gz"), Ciudad=c("Barcelona"))
+reviewsValencia <- cbind(read_csv("data/Valencia/reviews.csv.gz"), Ciudad=c("Valencia"))
+reviewsMexico <- cbind(read_csv("data/Mexico/reviews.csv.gz"), Ciudad=c("Mexico"))
+reviewsBuenosAires <- cbind(read_csv("data/Buenos_Aires/reviews.csv.gz"), Ciudad=c("Buenos Aires"))
+#Unimos todos los dataframes en uno único
+reviews <- rbind(reviewsMallorca, reviewsBarcelona, reviewsValencia, reviewsMexico, reviewsBuenosAires)
+#Guardamos los nuevos datos
+write_csv(x = reviews, "data/reviewsCiudades.csv")
+
+
+#calendar.csv
+#...
 ```
 
 **Quitamos NAs**
@@ -148,6 +158,7 @@ Estos es host_verifications
 ```{r}
 library('plyr')
 library('dplyr')
+library("data.table") 
 
 host_verifications<- strsplit(listings$host_verifications,"', '")
 
@@ -165,6 +176,22 @@ result[is.na(result)] <- 0
 listingsNoLists <- cbind(listings,result)
 
 listingsNoLists$host_verifications <- NULL
+
+setnames(listingsNoLists, "X..email", "email")
+setnames(listingsNoLists, "government_id..", "government_id")
+setnames(listingsNoLists, "identity_manual..", "identity_manual")
+setnames(listingsNoLists, "reviews..", "reviews")
+setnames(listingsNoLists, "work_email..", "work_email")
+setnames(listingsNoLists, "email", "X..email..")
+listingsNoLists$X..phone <- NULL
+listingsNoLists$X..phone.. <- NULL
+listingsNoLists$phone.. <- NULL
+listingsNoLists$manual_offline.. <- NULL
+listingsNoLists$X..reviews.. <- NULL
+listingsNoLists$X..identity_manual.. <- NULL
+listingsNoLists$X..jumio <- NULL
+listingsNoLists$photographer.. <- NULL
+listingsNoLists$X..offline_government_id <- NULL
 ```
 
 **Guardar csv limpio**
@@ -174,23 +201,5 @@ listingsNoLists$host_verifications <- NULL
 write_csv(x = listingsNoLists, "data/listingsCiudadesLimpio.csv")
 
 ```
-```{r}
-reviewsMallorca <- read_csv("data/Mallorca/reviews.csv.gz")
-reviewsBarcelona <- read_csv("data/Barcelona/reviews.csv.gz")
-reviewsValencia<- read_csv("data/Valencia/reviews.csv.gz")
-reviewsMexico<- read_csv("data/Mexico/reviews.csv.gz")
-reviewsBuenosAires<- read_csv("data/Buenos_Aires/reviews.csv.gz")
 
-reviewsMallorca <- cbind(reviewsMallorca,Ciudad=c("Mallorca"))
-reviewsBarcelona <- cbind(reviewsBarcelona,Ciudad=c("Barcelona"))
-reviewsValencia <- cbind(reviewsValencia,Ciudad=c("Valencia"))
-reviewsMexico <- cbind(reviewsMexico,Ciudad=c("Mexico"))
-reviewsBuenosAires <- cbind(reviewsBuenosAires,Ciudad=c("Buenos Aires"))
-
-#Unimos todos los dataframes en uno único
-reviews <- rbind(reviewsMallorca, reviewsBarcelona, reviewsValencia, reviewsMexico, reviewsBuenosAires)
-
-#Guardamos los nuevos datos
-write_csv(x = reviews, "data/reviewsCiudades.csv")
-```
 
