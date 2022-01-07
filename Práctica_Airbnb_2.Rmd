@@ -263,7 +263,7 @@ A partir de los datos recopilados en el DataFrame, podemos observar que:
 
 3- Suele haber más habitaciones de media en los apartamentos de Mallorca que en los ofertados en las otras ciudades con considerable diferencia.
 
-4- De nuevo, y posiblemente en relación con el punto anterior, los apaertamentos de Mallorca ofrecen más camas que los ofertados por otras ciudades con destacable diferencia, siendo el caso de Mexico donde menos camas, de media, se ofertan.
+4- De nuevo, y posiblemente en relación con el punto anterior, los apartamentos de Mallorca ofrecen más camas que los ofertados por otras ciudades con destacable diferencia, siendo el caso de Mexico donde menos camas, de media, se ofertan.
 
 ## Apartado 4 ##
 
@@ -316,28 +316,11 @@ prices$price[prices$Ciudad == "Mexico"]<- prices$price[prices$Ciudad == "Mexico"
 prices$price[prices$Ciudad == "Buenos Aires"]<- prices$price[prices$Ciudad == "Buenos Aires"] * 0.0086
 
 ```
-
-```{r}
-# Para mirar en que fechas empiezan y acaban los datos para cada ciudad:
-
-mMallorca<-min(select(prices[prices$Ciudad == "Mallorca",],date)$date, na.rm = TRUE)
-mBarcelona<-min(select(prices[prices$Ciudad == "Barcelona",],date)$date, na.rm = TRUE)
-mValencia<-min(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = TRUE)
-mMexico<-min(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
-mBuenosAires<-min(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
-
-MMallorca<-max(select(prices[prices$Ciudad == "Mallorca",],date)$date, na.rm = TRUE)
-MBarcelona<-max(select(prices[prices$Ciudad == "Barcelona",],date)$date, na.rm = TRUE)
-MValencia<-max(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = TRUE)
-MMexico<-max(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
-MBuenosAires<-max(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
-```
  
 Serie temporal para cada ciudad:
 
 Hemos detectado precios gratuitos y valores muy altos que desvirtuan las medias y los valores mínimos y máximos,
-podríamos utilizar un filtro para no considerarlos, si se quieren filtar o mostrar todos los datos basta con
-comentar o descomentar la primera línea.
+podríamos utilizar un filtro para no considerarlos.
 
 ```{r}
 diasCiudad<- data.frame()
@@ -366,8 +349,6 @@ for(i in 1:length(unique(listing$Ciudad))){
     ))
   }
   
-  tsCiudad.ts<-ts(select(diasCiudad,media,maxim,minim,Ciudad))
-  
 }
 
 ```
@@ -385,6 +366,17 @@ ggplot(data = diasCiudad, aes(x = date, y = minim, colour = Ciudad, group = 1))+
 ggplot(data = diasCiudad, aes(x = date, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por día")+ylab("precio máximo")+xlab("día")+scale_x_date(guide = guide_axis(check.overlap = TRUE))
 ```
 
+En lo que respecta a la evolución diaria, vemos que:
+
+1-Para el precio medio, las ciudades de Mexico y Buenos Aires tienen una tendencia similar tanto en progresión como en valores, mientras que las demás ciudades tien una progresión ascendente a lo larco del año, pero donde Valencia se desmarca con la diferencia de tener valores menores que Mallorca y Barcelona.Algo a notar es que a finales de 2022 los valores menguan.
+
+2-Para el precio mínimo nos encontramos que todas las ciudades han tenido alguna vez un apartamento con un precio de 0€ hasta finales del año 2022, donde esto cambia. Sin embargo, en Valencia ha sifo distinto de 0 durante todo el periodo.
+
+3-Para el precio máximo, todas las ciudades siguen en mayor medida una pregresión de valores constantes exceptuando Mallorca, donde los precios máximos se disparan considerablemente en temporada de primavera de 2022.
+
+También se puede inferir del precio medio que, si bien a distinta escala, los precios han ido subiendo indefinidamente hasta finales de 2022, pero siempre con mayor intensidad en los cambios de estaciones, donde los valores en Mallorca, Barcelona, y Valencia se incrementan súbitamente.
+
+Por otro lado, se aprecia como algo curioso que, en lo que respecta a los precios máximos, Mallorca tenga un incremento y decremnto súbito del mismo en un periodo concreto de 2022, que puede no ser representativo ni orientativo de los costes máximos por su desbordado valor y brusca variación.
 
 ```{r}
 # bucle para filtrar los precios por mes
@@ -414,8 +406,6 @@ for(i in 1:length(unique(listing$Ciudad))){
     ))
   }
   
-  ts_mes_Ciudad.ts<-ts(select(mesCiudad,media,maxim,minim,Ciudad))
-  
 }
 
 ```
@@ -424,15 +414,16 @@ Elaboramos las gráficas para la evolución por meses.
 
 ```{r}
 # precio medio
-ggplot(data = mesCiudad, aes(x = month, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por mes")+ylab("precio medio")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = mesCiudad, aes(x = month, y = media, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio medio por mes")+ylab("precio medio")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio minimo
-ggplot(data = mesCiudad, aes(x = month, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por mes")+ylab("precio mínimo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = mesCiudad, aes(x = month, y = minim, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio mínimo por mes")+ylab("precio mínimo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio máximo
-ggplot(data = mesCiudad, aes(x = month, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por mes")+ylab("precio máximo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = mesCiudad, aes(x = month, y = maxim, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio máximo por mes")+ylab("precio máximo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
 
+En lo que respecta a la evolución mensual, se aprecia la misma información que en el gráfico de días de una forma más distribuida, pero dado que eso impedía discernir claramente la iconografía del gráfico, se ha optado por cambiar las formas de los puntos según la ciudad que representan, y también acentuar su transparencia para ver los solapamientos.
 
 ```{r}
 # bucle para filtrar los precios por año
@@ -462,8 +453,6 @@ for(i in 1:length(unique(listing$Ciudad))){
     ))
   }
   
-  ts_año_Ciudad.ts<-ts(select(añoCiudad,media,maxim,minim,Ciudad))
-  
 }
 ```
 
@@ -471,14 +460,16 @@ Elaboramos las gráficas para la evolución por años.
 
 ```{r}
 # precio medio
-ggplot(data = añoCiudad, aes(x = year, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por año")+ylab("precio medio")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = añoCiudad, aes(x = year, y = media, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio medio por año")+ylab("precio medio")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio minimo
-ggplot(data = añoCiudad, aes(x = year, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por año")+ylab("precio mínimo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = añoCiudad, aes(x = year, y = minim, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio mínimo por año")+ylab("precio mínimo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio máximo
-ggplot(data = añoCiudad, aes(x = year, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por año")+ylab("precio máximo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = añoCiudad, aes(x = year, y = maxim, colour = Ciudad, group = 1))+geom_point(aes(size = 10, alpha = 0.4, shape = factor(Ciudad)))+labs(title = "Evolución precio máximo por año")+ylab("precio máximo")+xlab("año")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 ```
+
+En lo que respecta a la evolución anual, se aprecia y produce la misma información y preblemática, respectivamente, que en la gráfica anterior, por lo que se ha mantenido el diseño de la gráfica. 
 
 ## Apartado 5##
 
