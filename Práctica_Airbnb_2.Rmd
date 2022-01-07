@@ -18,17 +18,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 # librarías empleadas para el proyecto
-library(tidyverse)
-library(stringr)
-library(rgdal)
-library(rgeos)
-library(plotly)
-library(ggplot2)
-library(readr)
-library(data.table)
-library(magrittr)
-library(dplyr)
-library(forcats)
+library(tidyverse, warn.conflicts = FALSE)
+library(stringr, warn.conflicts = FALSE)
+library(rgdal, warn.conflicts = FALSE)
+library(rgeos, warn.conflicts = FALSE)
+library(plotly, warn.conflicts = FALSE)
+library(ggplot2, warn.conflicts = FALSE)
+library(readr, warn.conflicts = FALSE)
+library(data.table, warn.conflicts = FALSE)
+library(magrittr, warn.conflicts = FALSE)
+library(dplyr, warn.conflicts = FALSE)
+library(forcats, warn.conflicts = FALSE)
 ```
 
 ## Apartado 1 ##
@@ -61,7 +61,7 @@ ggplot(data = freqs_data, aes(x = freqs_data$aux, y = freqs_data$Freq, group = 1
 De la gráfica podemos observar y ,por tanto, confirmar que sí se sigue una relación potencial.
 
 ## Apartado 2##
-# Reviews por zona, barrio, dias de la semana y meses#
+ Reviews por zona, barrio, dias de la semana y meses
 
 ```{r}
 #para que todo se muestre en inglés
@@ -268,9 +268,9 @@ A partir de los datos recopilados en el DataFrame, podemos observar que:
 4- De nuevo, y posiblemente en relación con el punto anterior, los apaertamentos de Mallorca ofrecen más camas que los ofertados por otras ciudades con destacable diferencia, siendo el caso de Mexico donde menos camas, de media, se ofertan.
 
 ## Apartado 4 ##
-# Para la serie temporal de los precios medios, máximos y mínimos por día, semana y mes se realizará el estudio desde noviembre de 2021 hasta octubre de 2022.
 
-# Necesitamos los precios y las fechas, que estan en los archivos calendar.csv para obtener los datos
+Para la serie temporal de los precios medios, máximos y mínimos por día, semana y mes se realizará el estudio desde noviembre de 2021 hasta octubre de 2022.
+Necesitamos los precios y las fechas, que estan en los archivos calendar.csv para obtener los datos
 
 ```{r}
 priceMallorca <- read_csv("data/Mallorca/calendar.csv",show_col_types = FALSE)
@@ -334,11 +334,12 @@ MValencia<-max(select(prices[prices$Ciudad == "Valencia",],date)$date, na.rm = T
 MMexico<-max(select(prices[prices$Ciudad == "Mexico",],date)$date, na.rm = TRUE)
 MBuenosAires<-max(select(prices[prices$Ciudad == "Buenos Aires",],date)$date, na.rm = TRUE)
 ```
-# Serie temporal para cada ciudad:
+ 
+Serie temporal para cada ciudad:
 
-# Hemos detectado precios gratuitos y valores muy altos que desvirtuan las medias y los valores mínimos y máximos,
-# podríamos utilizar un filtro para no considerarlos, si se quieren filtar o mostrar todos los datos basta con
-# comentar o descomentar la primera línea.
+Hemos detectado precios gratuitos y valores muy altos que desvirtuan las medias y los valores mínimos y máximos,
+podríamos utilizar un filtro para no considerarlos, si se quieren filtar o mostrar todos los datos basta con
+comentar o descomentar la primera línea.
 
 ```{r}
 diasCiudad<- data.frame()
@@ -373,7 +374,7 @@ for(i in 1:length(unique(listing$Ciudad))){
 
 ```
 
-#Elaboramos las gráficas para la evolución por días.
+Elaboramos las gráficas para la evolución por días.
 
 ```{r}
 # precio medio
@@ -420,7 +421,8 @@ for(i in 1:length(unique(listing$Ciudad))){
 }
 
 ```
-#Elaboramos las gráficas para la evolución por meses.
+
+Elaboramos las gráficas para la evolución por meses.
 
 ```{r}
 # precio medio
@@ -467,7 +469,7 @@ for(i in 1:length(unique(listing$Ciudad))){
 }
 ```
 
-#Elaboramos las gráficas para la evolución por años.
+Elaboramos las gráficas para la evolución por años.
 
 ```{r}
 # precio medio
@@ -482,7 +484,7 @@ ggplot(data = añoCiudad, aes(x = year, y = maxim, colour = Ciudad, group = 1))+
 
 ## Apartado 5##
 
-### Representacion del numero de aparatamentos y su precio medio en navidad  ###
+Representacion del numero de aparatamentos y su precio medio en navidad  
 
 ```{r, include=FALSE}
 mapa <- rgdal::readOGR(
