@@ -113,13 +113,13 @@ reviews_day <- reviews_day[order(-reviews_day$reviews),]
 reviews_month <- reviews_month[order(-reviews_month$reviews),] 
 
 #Las reviews por días de la semana en orden descendente
-print.data.frame(reviews_day)
+head(reviews_day)
 #Las reviews por meses en orden descendente
-print.data.frame(reviews_month)
+head(reviews_month)
 #Las reviews por zonas en orden descendente
-print.data.frame(reviews_zone)
+head(reviews_zone)
 #Las reviews por ciudades en orden descendente
-print.data.frame(reviews_city)
+head(reviews_city)
 ```
 
 
