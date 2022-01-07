@@ -65,72 +65,35 @@ De la gráfica podemos observar y ,por tanto, confirmar que sí se sigue una rel
 ## Apartado 2##
 # Reviews por zona, barrio, dias de la semana y meses#
 
-Limpiar nombres y características que no se usan.
-
 ```{r}
 
-reviewsMallorca <- read_csv("data/Mallorca/reviews.csv")
-reviewsBarcelona <- read_csv("data/Barcelona/reviews.csv")
-reviewsValencia<- read_csv("data/Valencia/reviews.csv")
-reviewsMexico<- read_csv("data/Mexico/reviews.csv")
-reviewsBuenosAires<- read_csv("data/Buenos_Aires/reviews.csv")
-reviewsMallorca <- cbind(reviewsMallorca,Ciudad=c("Mallorca"))
-reviewsBarcelona <- cbind(reviewsBarcelona,Ciudad=c("Barcelona"))
-reviewsValencia <- cbind(reviewsValencia,Ciudad=c("Valencia"))
-reviewsMexico <- cbind(reviewsMexico,Ciudad=c("Mexico"))
-reviewsBuenosAires <- cbind(reviewsBuenosAires,Ciudad=c("Buenos Aires"))
-#Unimos todos los dataframes en uno único
-reviews <- rbind(reviewsMallorca, reviewsBarcelona, reviewsValencia, reviewsMexico, reviewsBuenosAires)
-#Guardamos los nuevos datos
-write_csv(x = reviews, "data/reviewsCiudades.csv")
-
-listings <- read_csv("data/listingsCiudadesLimpio.csv")
-setnames(listings, "X..email", "email")
-setnames(listings, "government_id..", "government_id")
-setnames(listings, "identity_manual..", "identity_manual")
-setnames(listings, "reviews..", "reviews")
-setnames(listings, "work_email..", "work_email")
-setnames(listings, "email", "X..email..")
-listings$X..phone <- NULL
-listings$X..phone.. <- NULL
-listings$phone.. <- NULL
-listings$manual_offline.. <- NULL
-listings$X..reviews.. <- NULL
-listings$X..identity_manual.. <- NULL
-listings$X..jumio <- NULL
-listings$photographer.. <- NULL
-listings$X..offline_government_id <- NULL
-
-```
-
-
-```{r}
-
-#para que salga en inglés
+#para que todo se muestre en inglés
 Sys.setlocale("LC_TIME","C")
 
 #para ordenar los plots a la hora de mostrarlo
 month_names <- c("January","February","March","April","May","June","July","August","September","October","November","December")
 day_names <- c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
 
-#creamos el dataset reviews a partir de las tablas de reviews de las ciudades
+#creamos el dataset reviews a partir de las tablas de reviews de las ciudades y los listings
 reviews <- read_csv("data/reviewsCiudades.csv")
+listings <- read_csv("data/listingsCiudadesLimpio.csv")
 
-
-#añadimos las características necesarias
+#añadimos las características necesarias para agrupar por día de la semana y por mes
 reviews$day <- weekdays(as.Date(reviews$date))
 reviews$month <- month.name[month(as.Date(reviews$date))]
+#al agrupar por un campo es necesario que las columnas tengan el mismo nombre
 setnames(listings, "id", "listing_id")
+#añadimos el barrio al dataset de reviews utilizando el listing_id para relacionar las filas
 reviews <- merge(reviews, listings[, c("listing_id", "neighbourhood_cleansed")], by="listing_id")
+#volvemos a dejar el campo de listings como estaba
 setnames(listings, "listing_id", "id")
+#modificamos el nombre por comodidad
 setnames(reviews, "neighbourhood_cleansed", "zone")
 
-#el dataset con todas las características necesarias
-str(reviews)
 
 #ahora montamos las tablas con la información que se pide
-#count para zones y ciudades
-reviews_zone <- aggregate(list(reviews=listings$number_of_reviews), by=list(zona=listings$neighbourhood_cleansed, ciudad=listings$Ciudad), FUN=sum) 
+#estas instrucciones realizan la suma del campo number_of_reviews para las agrupaicones de zones y ciudades
+reviews_zone <- aggregate(list(reviews=listings$number_of_reviews), by=list(zona=listings$neighbourhood_cleansed, ciudad=listings$Ciudad), FUN=sum)
 reviews_city <- aggregate(list(reviews=listings$number_of_reviews), by=list(ciudad=listings$Ciudad), FUN=sum) 
 
 #order descent
@@ -149,37 +112,60 @@ setnames(reviews_month, "Var1", "month")
 reviews_day <- reviews_day[order(-reviews_day$reviews),] 
 reviews_month <- reviews_month[order(-reviews_month$reviews),] 
 
+#Las reviews por días de la semana en orden descendente
+print.data.frame(reviews_day)
+#Las reviews por meses en orden descendente
+print.data.frame(reviews_month)
+#Las reviews por zonas en orden descendente
+print.data.frame(reviews_zone)
+#Las reviews por ciudades en orden descendente
+print.data.frame(reviews_city)
+```
 
-#algunos plots de muestra que podrían ser útiles
 
+Podemos observar como las ciudades con más reviews de nuestro conjunto de datos son México y Barcelona.
 
+Veamos de manera detallada la interpretación de estos datos.
+
+```{r}
 #plot ordenado
 p <- reviews %>%
   mutate(day = fct_relevel(day,day_names)) %>%
   ggplot( aes(x=day, fill=Ciudad)) +
     geom_bar(position = "dodge")
 p
+```
 
+Si mostramos la cantidad de reviews que reciben los listings en cada ciudad por los días de la semana podemos observar que, de manera general, se producen más reviews en domingo y lunes siendo miércoles y jueves los días que menos reviews se producen.
+
+```{r}
 #plot ordenado
 p <- reviews %>%
   mutate(month = fct_relevel(month,month_names)) %>%
   ggplot( aes(x=month, fill=Ciudad)) +
     geom_bar(position = "dodge")
 p
+```
 
+Realizando el mismo análisis en este caso viendo la cantidad de reviews que hay por mes podemos ver comportamientos distintos según la ciudad del listing. 
 
+Podemos observar que en ciudades como Barcelona, Mallorca y Valencia existe una estacionalidad de las reviews producidas acentuando la cantidad en los meses veraniegos de Junio, Julio, Agosto y Septiembre. Esto podría deberse a que el turismo se acentúa con el clima veraniego en estas ciudades.
+
+En cambio en México observamos que existe un menor despunte de los meses con más reviews frente a los meses con menos reviews ubicando los picos en Marzo y Octubre. Esto podría deberse a que el turismo en esta ciudad no depende tanto del clima como las ciudades anteriormente analizadas.
+
+Por último podemos observar algo de estacionalidad de los meses veraniegos en Buenos Aires que, en este caso, se sitúan entre los meses de Octubre y Marzo dado que se trata del hemisferio sur.
+
+```{r}
 #se observan las ciudades con temporalidad/estacionalidad
 ggplot(data = reviews, aes(x = date, y = Ciudad, group = 1)) +
     geom_count(alpha=0.01)+
     scale_size_area(max_size = 10)
 
-
-#Las tablas de lo que se pide
-reviews_day
-reviews_month
-reviews_zone
-reviews_city
 ```
+
+En este gráfico podemos observar las ciudades que tienen una estacionalidad más marcada frente a las que no. 
+
+Cabe destacar también cómo la irrupción de la Covid-19 provocó un descenso de las reviews sin precedentes a principios de 2020 así como también se ha alcanzado el número de reviews habitual en las últimas mediciones en la mayoría de ciudades excepto en Buenos Aires.
 
 ## Apartado 3 ##
 
