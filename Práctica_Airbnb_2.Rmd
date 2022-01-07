@@ -14,9 +14,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-```{r}
 # librarías empleadas para el proyecto
 library(tidyverse, warn.conflicts = FALSE)
 library(stringr, warn.conflicts = FALSE)
@@ -655,7 +653,9 @@ mapa_df <- mapa_df %>%
 
 ```
 
-A partir de aqui es la representaciond del numero de aparatamentos y su precio medio en las fechas de navidad.
+En los siguientes mapas analizamos el número de reservas y su precio medio en la última época navideña. (23-12-2020 hasta 2-1-2021).
+Tenemos que tener en cuenta que es posible que haya menos reservas producidas por la pandemia y sus restricciones.Todos los mapas
+muestran su precio en la moneda local.
 
 ```{r}
 # Se selecciona Islas baleares
@@ -698,6 +698,12 @@ ggplot(aes(x = long, y = lat, group = group, fill = x)) +
     panel.grid.minor = element_blank()
   )
 ```
+
+Cuando miramos las reservas realizadas en Mallorca, podemos observar que en estas 2 semanas festivas
+no hay un gran número de reservas. Solo hay una cantidad decente en Palma de Mallorca. Al ser invierno,
+seguramente las zonas más centradas en su turismo de costa no destacan tanto, mientras en la ciudad se
+puede ver toda la decoración navideña por sus calles, lo que llama más la atención a la hora de hacer una
+reserva.
 
 ```{r}
 mapa_bcn_df$n_distri <- tolower(mapa_bcn_df$n_distri)
@@ -750,6 +756,11 @@ ggplot(aes(x = long, y = lat, group = group, fill = x)) +
     panel.grid.minor = element_blank()
   )
 ```
+
+En Barcelona sí vemos más reservas realizadas, la zona de Eixample siendo la más solicitada. Nos podemos fijar que las zonas 
+costeras son las más reservadas y las más caras. Barcelona tiene mucho turismo que no depende del verano, por lo tanto, puede
+que sea una zona más apetecible para visitar en estas fechas señaladas.
+
 ```{r}
 mapa_vlc_df$nombre <- tolower(mapa_vlc_df$nombre)
 mapa_vlc_df <- mapa_vlc_df %>% 
@@ -803,6 +814,9 @@ ggplot(aes(x = long, y = lat, group = group, fill = x)) +
   )
 ```
 
+De Valencia destaca el númmero de reservas como su precio bastante inferior a las otras 2 ciudades analizadas de España.
+La zona más solicitada es Ciutat Vella. Sorprende que tenga tantas reservas en comparación al resto de zonas de la ciudad.
+
 ```{r}
 mapa_arg_df$id <- tolower(mapa_arg_df$id)
 mapa_arg_df <- mapa_arg_df %>% 
@@ -853,6 +867,10 @@ ggplot(aes(x = long, y = lat, group = group, fill = x)) +
     panel.grid.minor = element_blank()
   )
 ```
+
+La ciudad de Buenos Aires goza de unas temperaturas cálidas en estas fechas. Por su zona en el globo terrestre,
+se encuentran en pleno verano. Así podemos observar como hay bastantes más reservas para estas fechas. Las zonas
+costeras son las más solicitadas al igual que las más caras. Destaca el barrio de Palermo como la zona con más reservas.
 
 
 ```{r}
@@ -906,3 +924,8 @@ ggplot(aes(x = long, y = lat, group = group, fill = x)) +
     panel.grid.minor = element_blank()
   )
 ```
+La Ciudad de México se encuentra cerca del ecuador, por lo cual tiene buenas temperaturas
+la mayor parte del año. De esta forma, no se ve muy alterado el número de reservas en esta
+época del año. Cuenta con bastantes reservas en toda la ciudad, destacando la zona de Cuauhtémoc
+como la parte más solicitada de la ciudad.
+
