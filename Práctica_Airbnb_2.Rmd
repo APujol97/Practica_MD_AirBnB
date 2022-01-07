@@ -119,7 +119,7 @@ head(reviews_city)
 ```
 
 
-Podemos observar como las ciudades con más reviews de nuestro conjunto de datos son México y Barcelona.
+Podemos observar como las ciudades con más reviews de nuestro conjunto de datos son México y Barcelona. También podemos observar que los barrios/zonas con más reviews son Cuauhtémoc y Palermo de México y Buenos Aires respectivamente. Palma de Mallorca se encuentra entre las cinco zonas con más reviews del conjunto de muestra seleccionado.
 
 Veamos de manera detallada la interpretación de estos datos.
 
