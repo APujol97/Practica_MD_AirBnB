@@ -286,11 +286,11 @@ A partir de los datos recopilados en el DataFrame, podemos observar que:
 # Necesitamos los precios y las fechas, que estan en los archivos calendar.csv para obtener los datos
 
 ```{r}
-priceMallorca <- read_csv("data/Mallorca/calendar.csv")
-priceBarcelona <- read_csv("data/Barcelona/calendar.csv")
-priceValencia<- read_csv("data/Valencia/calendar.csv")
-priceMexico<- read_csv("data/Mexico/calendar.csv")
-priceBuenosAires<- read_csv("data/Buenos_Aires/calendar.csv")
+priceMallorca <- read_csv("data/Mallorca/calendar.csv.gz")
+priceBarcelona <- read_csv("data/Barcelona/calendar.csv.gz")
+priceValencia<- read_csv("data/Valencia/calendar.csv.gz")
+priceMexico<- read_csv("data/Mexico/calendar.csv.gz")
+priceBuenosAires<- read_csv("data/Buenos_Aires/calendar.csv.gz")
 
 priceColumns <- c("date","price")
 
@@ -441,7 +441,7 @@ for(i in 1:length(unique(listing$Ciudad))){
 ggplot(data = mesCiudad, aes(x = month, y = media, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio medio por mes")+ylab("precio medio")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio minimo
-ggplot(data = mesCiudad, aes(x = month, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por mes")+ylab("precio mínimo")+lab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = mesCiudad, aes(x = month, y = minim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio mínimo por mes")+ylab("precio mínimo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 #precio máximo
 ggplot(data = mesCiudad, aes(x = month, y = maxim, colour = Ciudad, group = 1))+geom_point()+labs(title = "Evolución precio máximo por mes")+ylab("precio máximo")+xlab("mes")+scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
